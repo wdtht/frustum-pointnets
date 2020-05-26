@@ -15,7 +15,7 @@ from model_util import NUM_HEADING_BIN, NUM_SIZE_CLUSTER, NUM_OBJECT_POINT
 from model_util import point_cloud_masking, get_center_regression_net
 from model_util import placeholder_inputs, parse_output_to_tensors, get_loss
 
-def get_instance_seg_v1_net(point_cloud, one_hot_vec,
+def get_instance_seg_v1_net(point_cloud, point_rgb, point_indexes, one_hot_vec,
                             is_training, bn_decay, end_points):
     ''' 3D instance segmentation PointNet v1 network.
     Input:
@@ -44,11 +44,27 @@ def get_instance_seg_v1_net(point_cloud, one_hot_vec,
                          padding='VALID', stride=[1,1],
                          bn=True, is_training=is_training,
                          scope='conv2', bn_decay=bn_decay)
-    point_feat = tf_util.conv2d(net, 64, [1,1],
+    point_ord_feat = tf_util.conv2d(net, 64, [1,1],
                          padding='VALID', stride=[1,1],
                          bn=True, is_training=is_training,
                          scope='conv3', bn_decay=bn_decay)
-    net = tf_util.conv2d(point_feat, 128, [1,1],
+
+    rgb_net = tf_util.conv2d(point_rgb, 64, [3,3],
+                         padding='SAME', stride=[1,1],
+                         bn=True, is_training=is_training,
+                         scope='conv1_rgb', bn_decay=bn_decay)
+    rgb_net = tf_util.conv2d(rgb_net, 64, [3,3],
+                         padding='SAME', stride=[1,1],
+                         bn=True, is_training=is_training,
+                         scope='conv2_rgb', bn_decay=bn_decay)
+    point_rgb_feat = tf_util.conv2d(rgb_net, 64, [3,3],
+                         padding='SAME', stride=[1,1],
+                         bn=True, is_training=is_training,
+                         scope='conv3_rgb', bn_decay=bn_decay)
+    point_rgb_feat = tf.gather_nd(point_rgb_feat, point_indexes)
+    point_rgb_feat = tf.expand_dims(point_rgb_feat, 2)
+
+    net = tf_util.conv2d(point_ord_feat, 128, [1,1],
                          padding='VALID', stride=[1,1],
                          bn=True, is_training=is_training,
                          scope='conv4', bn_decay=bn_decay)
@@ -61,7 +77,7 @@ def get_instance_seg_v1_net(point_cloud, one_hot_vec,
 
     global_feat = tf.concat([global_feat, tf.expand_dims(tf.expand_dims(one_hot_vec, 1), 1)], axis=3)
     global_feat_expand = tf.tile(global_feat, [1, num_point, 1, 1])
-    concat_feat = tf.concat(axis=3, values=[point_feat, global_feat_expand])
+    concat_feat = tf.concat(axis=3, values=[point_ord_feat, point_rgb_feat, global_feat_expand])
 
     net = tf_util.conv2d(concat_feat, 512, [1,1],
                          padding='VALID', stride=[1,1],
@@ -136,7 +152,7 @@ def get_3d_box_estimation_v1_net(object_point_cloud, one_hot_vec,
     return output, end_points
 
 
-def get_model(point_cloud, one_hot_vec, is_training, bn_decay=None):
+def get_model(point_cloud, point_rgb, point_indexes, one_hot_vec, is_training, bn_decay=None):
     ''' Frustum PointNets model. The model predict 3D object masks and
     amodel bounding boxes for objects in frustum point clouds.
 
@@ -155,7 +171,7 @@ def get_model(point_cloud, one_hot_vec, is_training, bn_decay=None):
     
     # 3D Instance Segmentation PointNet
     logits, end_points = get_instance_seg_v1_net(\
-        point_cloud, one_hot_vec,
+        point_cloud, point_rgb, point_indexes, one_hot_vec,
         is_training, bn_decay, end_points)
     end_points['mask_logits'] = logits
 
