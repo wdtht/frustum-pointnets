@@ -174,6 +174,8 @@ def placeholder_inputs(batch_size, num_point):
     '''
     pointclouds_pl = tf.placeholder(tf.float32,
         shape=(batch_size, num_point, 4))
+    point_rgb_pl = tf.placeholder(tf.float32, shape=(batch_size,300,300,3))
+    point_indexes_pl = tf.placeholder(tf.int32, shape=(batch_size, num_point, 2))
     one_hot_vec_pl = tf.placeholder(tf.float32, shape=(batch_size, 3))
 
     # labels_pl is for segmentation label
@@ -184,7 +186,7 @@ def placeholder_inputs(batch_size, num_point):
     size_class_label_pl = tf.placeholder(tf.int32, shape=(batch_size,))
     size_residual_label_pl = tf.placeholder(tf.float32, shape=(batch_size,3))
 
-    return pointclouds_pl, one_hot_vec_pl, labels_pl, centers_pl, \
+    return pointclouds_pl, point_rgb_pl, point_indexes_pl, one_hot_vec_pl, labels_pl, centers_pl, \
         heading_class_label_pl, heading_residual_label_pl, \
         size_class_label_pl, size_residual_label_pl
 

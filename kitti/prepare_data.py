@@ -176,6 +176,7 @@ def extract_frustum_data(idx_filename, split, output_filename, viz=False,
     # (cont.) clockwise angle from positive x axis in velo coord.
     box3d_size_list = [] # array of l,w,h
     frustum_angle_list = [] # angle of 2d box center from pos x-axis
+    point_indexes_list = []
 
     pos_cnt = 0
     all_cnt = 0
@@ -211,6 +212,9 @@ def extract_frustum_data(idx_filename, split, output_filename, viz=False,
                     (pc_image_coord[:,1]>=ymin)
                 box_fov_inds = box_fov_inds & img_fov_inds
                 pc_in_box_fov = pc_rect[box_fov_inds,:]
+
+                point_indexes = pc_image_coord[box_fov_inds]
+
                 # Get frustum angle (according to center pixel in 2D BOX)
                 box2d_center = np.array([(xmin+xmax)/2.0, (ymin+ymax)/2.0])
                 uvdepth = np.zeros((1,3))
@@ -243,6 +247,7 @@ def extract_frustum_data(idx_filename, split, output_filename, viz=False,
                 heading_list.append(heading_angle)
                 box3d_size_list.append(box3d_size)
                 frustum_angle_list.append(frustum_angle)
+                point_indexes_list.append(point_indexes)
     
                 # collect statistics
                 pos_cnt += np.sum(label)
@@ -261,6 +266,7 @@ def extract_frustum_data(idx_filename, split, output_filename, viz=False,
         pickle.dump(heading_list, fp)
         pickle.dump(box3d_size_list, fp)
         pickle.dump(frustum_angle_list, fp)
+        pickle.dump(point_indexes_list, fp)
     
     if viz:
         import mayavi.mlab as mlab
@@ -348,6 +354,7 @@ def extract_frustum_data_rgb_detection(det_filename, split, output_filename,
     prob_list = []
     input_list = [] # channel number = 4, xyz,intensity in rect camera coord
     frustum_angle_list = [] # angle of 2d box center from pos x-axis
+    point_indexes_list =[]
 
     for det_idx in range(len(det_id_list)):
         data_idx = det_id_list[det_idx]
@@ -378,6 +385,9 @@ def extract_frustum_data_rgb_detection(det_filename, split, output_filename,
             (pc_image_coord[:,1]>=ymin)
         box_fov_inds = box_fov_inds & img_fov_inds
         pc_in_box_fov = pc_rect[box_fov_inds,:]
+
+        point_indexes = pc_image_coord[box_fov_inds]
+
         # Get frustum angle (according to center pixel in 2D BOX)
         box2d_center = np.array([(xmin+xmax)/2.0, (ymin+ymax)/2.0])
         uvdepth = np.zeros((1,3))
@@ -398,6 +408,7 @@ def extract_frustum_data_rgb_detection(det_filename, split, output_filename,
         prob_list.append(det_prob_list[det_idx])
         input_list.append(pc_in_box_fov)
         frustum_angle_list.append(frustum_angle)
+        point_indexes_list.append(point_indexes)
     
     with open(output_filename,'wb') as fp:
         pickle.dump(id_list, fp)
@@ -406,6 +417,7 @@ def extract_frustum_data_rgb_detection(det_filename, split, output_filename,
         pickle.dump(type_list, fp)
         pickle.dump(frustum_angle_list, fp)
         pickle.dump(prob_list, fp)
+        pickle.dump(point_indexes_list, fp)
     
     if viz:
         import mayavi.mlab as mlab

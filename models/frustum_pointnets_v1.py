@@ -203,8 +203,10 @@ def get_model(point_cloud, point_rgb, point_indexes, one_hot_vec, is_training, b
 
 if __name__=='__main__':
     with tf.Graph().as_default():
-        inputs = tf.zeros((32,1024,4))
-        outputs = get_model(inputs, tf.ones((32,3)), tf.constant(True))
+        point_inputs = tf.zeros((32,1024,4))
+        rgb_inputs = tf.zeros((32,128,128,3))
+        point_indexes = tf.zeros((32,1024,2))
+        outputs = get_model(point_inputs, rgb_inputs, point_indexes, tf.ones((32,3)), tf.constant(True))
         for key in outputs:
             print((key, outputs[key]))
         loss = get_loss(tf.zeros((32,1024),dtype=tf.int32),

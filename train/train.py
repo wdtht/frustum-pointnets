@@ -98,7 +98,7 @@ def train():
     ''' Main function for training and simple evaluation. '''
     with tf.Graph().as_default():
         with tf.device('/gpu:'+str(GPU_INDEX)):
-            pointclouds_pl, one_hot_vec_pl, labels_pl, centers_pl, \
+            pointclouds_pl, point_rgb_pl, point_indexes_pl, one_hot_vec_pl, labels_pl, centers_pl, \
             heading_class_label_pl, heading_residual_label_pl, \
             size_class_label_pl, size_residual_label_pl = \
                 MODEL.placeholder_inputs(BATCH_SIZE, NUM_POINT)
@@ -178,6 +178,8 @@ def train():
             saver.restore(sess, FLAGS.restore_model_path)
 
         ops = {'pointclouds_pl': pointclouds_pl,
+               'point_rgb_pl': point_rgb_pl,
+               'point_indexes_pl': point_indexes_pl,
                'one_hot_vec_pl': one_hot_vec_pl,
                'labels_pl': labels_pl,
                'centers_pl': centers_pl,
@@ -231,7 +233,7 @@ def train_one_epoch(sess, ops, train_writer):
         start_idx = batch_idx * BATCH_SIZE
         end_idx = (batch_idx+1) * BATCH_SIZE
 
-        batch_data, batch_label, batch_center, \
+        batch_data, batch_point_rgb, batch_point_indexes, batch_label, batch_center, \
         batch_hclass, batch_hres, \
         batch_sclass, batch_sres, \
         batch_rot_angle, batch_one_hot_vec = \
@@ -239,6 +241,8 @@ def train_one_epoch(sess, ops, train_writer):
                 NUM_POINT, NUM_CHANNEL)
 
         feed_dict = {ops['pointclouds_pl']: batch_data,
+                     ops['point_rgb_pl']: batch_point_rgb,
+                     ops['point_indexes_pl']: batch_point_indexes,
                      ops['one_hot_vec_pl']: batch_one_hot_vec,
                      ops['labels_pl']: batch_label,
                      ops['centers_pl']: batch_center,

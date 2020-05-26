@@ -1,3 +1,4 @@
+# coding=utf-8
 ''' Provider class and helper functions for Frustum PointNets.
 
 Author: Charles R. Qi
@@ -9,6 +10,10 @@ import cPickle as pickle
 import sys
 import os
 import numpy as np
+import cv2
+
+from kitti.kitti_object import kitti_object
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(BASE_DIR)
 sys.path.append(BASE_DIR)
@@ -97,6 +102,8 @@ class FrustumDataset(object):
     Load prepared KITTI data from pickled files, return individual data element
     [optional] along with its annotations.
     '''
+    orig_dataset = kitti_object(os.path.join(ROOT_DIR, 'dataset/KITTI/object'))
+
     def __init__(self, npoints, split,
                  random_flip=False, random_shift=False, rotate_to_center=False,
                  overwritten_data_path=None, from_rgb_detection=False, one_hot=False):
@@ -145,7 +152,8 @@ class FrustumDataset(object):
                 self.heading_list = pickle.load(fp)
                 self.size_list = pickle.load(fp)
                 # frustum_angle is clockwise angle from positive x-axis
-                self.frustum_angle_list = pickle.load(fp) 
+                self.frustum_angle_list = pickle.load(fp)
+                self.point_indexes_list = pickle.load(fp)
 
     def __len__(self):
             return len(self.input_list)
@@ -214,11 +222,20 @@ class FrustumDataset(object):
         angle_class, angle_residual = angle2class(heading_angle,
             NUM_HEADING_BIN)
 
+        image = self.orig_dataset.get_image(self.id_list[index])
+        box2d = self.box2d_list[index]
+        point_rgb = image[box2d[0]:box2d[2],box2d[1]:box2d[3]]
+        point_rgb = cv2.resize(point_rgb, (300,300))
+        point_rgb = point_rgb/127.5 - 1
+        point_indexes = self.point_indexes_list[index]
+        point_indexes = point_indexes[choice, :]
+        point_indexes = (point_indexes - [box2d[0], box2d[1]])/([box2d[2]-box2d[0],box2d[3]-box2d[1]])*300
+
         if self.one_hot:
-            return point_set, seg, box3d_center, angle_class, angle_residual,\
+            return point_set, point_rgb, point_indexes, seg, box3d_center, angle_class, angle_residual,\
                 size_class, size_residual, rot_angle, one_hot_vec
         else:
-            return point_set, seg, box3d_center, angle_class, angle_residual,\
+            return point_set, point_rgb, point_indexes, seg, box3d_center, angle_class, angle_residual,\
                 size_class, size_residual, rot_angle
 
     def get_center_view_rot_angle(self, index):
